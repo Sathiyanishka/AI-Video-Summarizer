@@ -1,0 +1,6 @@
+New-Item static\uploads\.gitkeep -ItemType File
+New-Item static\audio\.gitkeep -ItemType File
+New-Item output\transcripts\.gitkeep -ItemType File
+New-Item output\summaries\.gitkeep -ItemType File
+New-Item output\quizzes\.gitkeep -ItemType File
+New-Item output\pdfs\.gitkeep -ItemType File

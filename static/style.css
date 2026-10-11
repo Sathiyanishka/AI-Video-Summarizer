@@ -1,0 +1,22 @@
+body{
+    background:#eef3f8;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+.card{
+    border-radius:15px;
+}
+
+textarea{
+    resize:none;
+    margin-top:10px;
+}
+
+.btn{
+    font-size:18px;
+}
+
+.spinner-border{
+    width:4rem;
+    height:4rem;
+}

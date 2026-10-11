@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# VS Code
+.vscode/
+
+# Environment Variables
+.env
+
+# Uploaded Files
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Extracted Audio
+static/audio/*
+!static/audio/.gitkeep
+
+# Output Files
+output/transcripts/*
+output/summaries/*
+output/quizzes/*
+output/pdfs/*
+
+!output/transcripts/.gitkeep
+!output/summaries/.gitkeep
+!output/quizzes/.gitkeep
+!output/pdfs/.gitkeep
+
+# OS Files
+.DS_Store
+Thumbs.db

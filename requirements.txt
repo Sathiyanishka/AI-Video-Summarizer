@@ -1,0 +1,11 @@
+Flask==3.1.2
+moviepy==2.2.1
+openai-whisper
+torch
+transformers
+sentencepiece
+accelerate
+reportlab
+google-genai
+imageio-ffmpeg
+gunicorn
