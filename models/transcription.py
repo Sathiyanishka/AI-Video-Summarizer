@@ -1,46 +1,48 @@
 ﻿
 import os
 import logging
-from google import genai
+import whisper
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-_api_key = os.getenv("GEMINI_API_KEY")
-_client = genai.Client(api_key=_api_key) if _api_key else None
+_model = None
 
 
-def summarize_text(text):
-    if not text or not text.strip():
-        return "No text available to summarize."
-
-    if _client is None:
-        raise RuntimeError(
-            "GEMINI_API_KEY is missing. Add it in Render Environment Variables."
-        )
-
-    # Limit transcript length to control processing time and token usage.
-    text = text.strip()[:12000]
+def transcribe_audio(audio_path):
+    global _model
 
     try:
-        logger.info("Starting Gemini summarization")
+        if not os.path.isfile(audio_path):
+            raise FileNotFoundError(
+                f"Audio file not found: {audio_path}"
+            )
 
-        response = _client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=(
-                "Summarize this video transcript clearly. "
-                "Include the main ideas and important details. "
-                "Use concise, easy-to-understand language.\n\n"
-                + text
-            ),
+        if _model is None:
+            logger.info("Loading Whisper tiny model...")
+            _model = whisper.load_model("tiny", device="cpu")
+            logger.info("Whisper model loaded successfully.")
+
+        logger.info("Starting transcription: %s", audio_path)
+
+        result = _model.transcribe(audio_path, fp16=False)
+        transcript = result["text"].strip()
+
+        output_dir = "output/transcripts"
+        os.makedirs(output_dir, exist_ok=True)
+
+        filename = os.path.splitext(
+            os.path.basename(audio_path)
+        )[0]
+        transcript_path = os.path.join(
+            output_dir, f"{filename}.txt"
         )
 
-        if not response.text or not response.text.strip():
-            raise RuntimeError("Gemini returned an empty summary.")
+        with open(transcript_path, "w", encoding="utf-8") as f:
+            f.write(transcript)
 
-        logger.info("Summary generated successfully")
-        return response.text.strip()
+        logger.info("Transcript saved: %s", transcript_path)
+        return transcript, transcript_path
 
     except Exception:
-        logger.exception("Gemini summarization failed")
+        logger.exception("Whisper transcription failed")
         raise
