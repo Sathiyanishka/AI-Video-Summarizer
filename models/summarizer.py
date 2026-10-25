@@ -1,21 +1,30 @@
-from transformers import pipeline
 
-# Load summarization model (downloads once)
-summarizer = pipeline(
-    "summarization",
-    model="facebook/bart-large-cnn"
-)
+import os
+from google import genai
+
+api_key = os.getenv("GEMINI_API_KEY")
+client = genai.Client(api_key=api_key) if api_key else None
+
 
 def summarize_text(text):
+    if not text or not text.strip():
+        return "No text available to summarize."
 
-    # BART has an input length limit
-    text = text[:3000]
+    if client is None:
+        raise RuntimeError("GEMINI_API_KEY is not configured.")
 
-    summary = summarizer(
-        text,
-        max_length=150,
-        min_length=50,
-        do_sample=False
+    text = text[:12000]
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=(
+            "Summarize the following video transcript clearly. "
+            "Include the main ideas and important details.\n\n"
+            + text
+        ),
     )
 
-    return summary[0]["summary_text"]
+    if not response.text:
+        raise RuntimeError("The summarization API returned an empty response.")
+
+    return response.text.strip()
