@@ -2,7 +2,7 @@ Flask==3.1.2
 moviepy==2.2.1
 openai-whisper
 torch
-transformers
+transformers==4.57.1
 sentencepiece
 accelerate
 reportlab
