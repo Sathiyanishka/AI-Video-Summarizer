@@ -1,4 +1,5 @@
 import os
+from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, send_file
 
 from utils.video_utils import extract_audio
@@ -34,11 +35,12 @@ def home():
     return render_template("index.html")
 
 
+
 @app.route("/upload", methods=["POST"])
 def upload():
+    stage = "starting upload"
 
     try:
-
         if "video" not in request.files:
             return render_template(
                 "index.html",
@@ -47,113 +49,93 @@ def upload():
 
         file = request.files["video"]
 
-        if file.filename == "":
+        if not file or not file.filename:
             return render_template(
                 "index.html",
                 error="Please select a video."
             )
 
-        # Save video
+        # Use a safe filename
+        filename = secure_filename(file.filename)
+
+        if not filename:
+            return render_template(
+                "index.html",
+                error="Invalid video filename."
+            )
+
         video_path = os.path.join(
             app.config["UPLOAD_FOLDER"],
-            file.filename
+            filename
         )
 
+        stage = "saving video"
+        print(f"[PROCESS] {stage}", flush=True)
         file.save(video_path)
 
-        print("✅ Video Saved")
-
-        # Extract Audio
+        stage = "extracting audio"
+        print(f"[PROCESS] {stage}", flush=True)
         audio_path = extract_audio(video_path)
+        print("[SUCCESS] Audio extracted", flush=True)
 
-        print("✅ Audio Extracted")
-
-        # Speech To Text
+        stage = "transcribing audio with Whisper"
+        print(f"[PROCESS] {stage}", flush=True)
         transcript, transcript_path = transcribe_audio(audio_path)
+        print("[SUCCESS] Transcript generated", flush=True)
 
-        print("✅ Transcript Generated")
-
-        # Summary
+        stage = "generating summary"
+        print(f"[PROCESS] {stage}", flush=True)
         summary = summarize_text(transcript)
 
         summary_path = os.path.join(
             "output/summaries",
-            os.path.splitext(file.filename)[0] + "_summary.txt"
+            os.path.splitext(filename)[0] + "_summary.txt"
         )
-
         with open(summary_path, "w", encoding="utf-8") as f:
             f.write(summary)
 
-        print("✅ Summary Saved")
-
-        # Quiz
+        stage = "generating quiz"
+        print(f"[PROCESS] {stage}", flush=True)
         quiz = generate_quiz(summary)
 
         quiz_path = os.path.join(
             "output/quizzes",
-            os.path.splitext(file.filename)[0] + "_quiz.txt"
+            os.path.splitext(filename)[0] + "_quiz.txt"
         )
-
         with open(quiz_path, "w", encoding="utf-8") as f:
             f.write(quiz)
 
-        print("✅ Quiz Saved")
-
-        # PDF
-        summary_pdf = "output/pdfs/latest_summary.pdf"
-        quiz_pdf = "output/pdfs/latest_quiz.pdf"
+        stage = "generating PDFs"
+        print(f"[PROCESS] {stage}", flush=True)
 
         create_pdf(
             "Video Summary",
             summary,
-            summary_pdf
+            "output/pdfs/latest_summary.pdf"
         )
-
         create_pdf(
             "Video Quiz",
             quiz,
-            quiz_pdf
+            "output/pdfs/latest_quiz.pdf"
         )
 
-        print("✅ PDF Generated")
+        print("[SUCCESS] All processing completed", flush=True)
 
         return render_template(
             "index.html",
-            video=file.filename,
+            video=filename,
             transcript=transcript,
             summary=summary,
             quiz=quiz,
             success=True
         )
 
-    except Exception as e:
-
-        print("ERROR:", e)
-
+    except Exception:
+        app.logger.exception(
+            "Video processing failed at stage: %s",
+            stage
+        )
         return render_template(
             "index.html",
-            error=str(e)
-        )
-
-
-@app.route("/download/summary")
-def download_summary():
-
-    return send_file(
-        "output/pdfs/latest_summary.pdf",
-        as_attachment=True
-    )
-
-
-@app.route("/download/quiz")
-def download_quiz():
-
-    return send_file(
-        "output/pdfs/latest_quiz.pdf",
-        as_attachment=True
-    )
-
-
-if __name__ == "__main__":
-    print("🚀 Starting Flask Server...")
-    app.run(debug=True)
+            error=f"Processing failed during: {stage}. Check server logs."
+        ), 500
