@@ -1,20 +1,23 @@
-import os
+﻿import os
 import whisper
 
+_model = None
+
+
 def transcribe_audio(audio_path):
-    model = whisper.load_model("base")
+    global _model
 
-    result = model.transcribe(audio_path)
+    if _model is None:
+        _model = whisper.load_model("tiny", device="cpu")
 
-    transcript = result["text"]
+    result = _model.transcribe(audio_path, fp16=False)
+    transcript = result["text"].strip()
 
-    os.makedirs("output/transcripts", exist_ok=True)
+    output_dir = "output/transcripts"
+    os.makedirs(output_dir, exist_ok=True)
 
     filename = os.path.splitext(os.path.basename(audio_path))[0]
-    transcript_path = os.path.join(
-        "output/transcripts",
-        f"{filename}.txt"
-    )
+    transcript_path = os.path.join(output_dir, f"{filename}.txt")
 
     with open(transcript_path, "w", encoding="utf-8") as file:
         file.write(transcript)
